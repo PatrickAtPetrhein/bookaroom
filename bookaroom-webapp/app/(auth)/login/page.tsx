@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClient } from "@/lib/supabase/client";
+import { isPersonalEmailDomain } from "@/lib/auth-client";
 
 const inputClassName = "h-10 text-base";
 
@@ -77,6 +78,14 @@ export default function LoginPage() {
 
     if (!fullName || !email || !password) {
       setMessage("Please provide full name, email, and password.");
+      setIsError(true);
+      return;
+    }
+
+    if (isPersonalEmailDomain(email)) {
+      setMessage(
+        "Please use your work email. Personal email providers like Gmail and Outlook are not supported.",
+      );
       setIsError(true);
       return;
     }

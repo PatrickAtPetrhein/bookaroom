@@ -1,7 +1,35 @@
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
-export const DEFAULT_COMPANY_ID = "00000000-0000-0000-0000-000000000001";
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "outlook.com",
+  "hotmail.com",
+  "live.com",
+  "yahoo.com",
+  "yahoo.co.uk",
+  "aol.com",
+  "icloud.com",
+  "me.com",
+  "mac.com",
+  "protonmail.com",
+  "proton.me",
+  "mail.com",
+  "zoho.com",
+  "yandex.com",
+  "gmx.com",
+  "gmx.net",
+  "gmx.de",
+  "web.de",
+  "t-online.de",
+  "freenet.de",
+]);
+
+export function isPersonalEmailDomain(email: string): boolean {
+  const domain = email.split("@")[1]?.toLowerCase();
+  return domain ? PERSONAL_EMAIL_DOMAINS.has(domain) : false;
+}
 
 export type Profile = {
   id: string;
@@ -50,8 +78,22 @@ export async function getOrCreateProfile(user: User) {
     return existingProfile as Profile;
   }
 
-  const fullName = user.user_metadata.full_name ?? formatNameFromEmail(user.email ?? "Employee");
   const email = user.email ?? `${user.id}@unknown.local`;
+  const domain = email.split("@")[1] ?? "unknown.local";
+
+  const { data: companyId, error: rpcError } = await supabase.rpc(
+    "ensure_company_for_domain",
+    { p_domain: domain },
+  );
+
+  if (rpcError || !companyId) {
+    throw new Error(
+      `Unable to resolve company: ${rpcError?.message ?? "Unknown error"}`,
+    );
+  }
+
+  const fullName =
+    user.user_metadata.full_name ?? formatNameFromEmail(email);
 
   const { data: insertedProfile, error: insertError } = await supabase
     .from("profiles")
@@ -59,7 +101,7 @@ export async function getOrCreateProfile(user: User) {
       id: user.id,
       full_name: fullName,
       email,
-      company_id: DEFAULT_COMPANY_ID,
+      company_id: companyId,
     })
     .select("id, full_name, email, company_id")
     .single();

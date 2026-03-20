@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/app/components/app-header";
 import { ScheduleClient } from "@/app/schedule/schedule-client";
-import { addDays, toIsoDate } from "@/lib/attendance";
+import { toIsoDate } from "@/lib/attendance";
 import { getOrCreateProfile, type Profile } from "@/lib/auth-client";
 import { createClient } from "@/lib/supabase/client";
 
@@ -13,7 +13,7 @@ export default function SchedulePage() {
   const supabase = useMemo(() => createClient(), []);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [initialDates, setInitialDates] = useState<string[]>([]);
-  const [status, setStatus] = useState("Loading your schedule...");
+  const [teamCounts, setTeamCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     async function loadSchedule() {
@@ -31,26 +31,43 @@ export default function SchedulePage() {
         const nextProfile = await getOrCreateProfile(user);
         setProfile(nextProfile);
 
-        const startDate = toIsoDate(new Date());
-        const endDate = toIsoDate(addDays(new Date(), 29));
-        const { data, error } = await supabase
-          .from("attendance_days")
-          .select("office_date")
-          .eq("user_id", nextProfile.id)
-          .gte("office_date", startDate)
-          .lte("office_date", endDate)
-          .order("office_date", { ascending: true });
+        const today = new Date();
+        const startDate = toIsoDate(today);
+        const endDate = toIsoDate(
+          new Date(today.getFullYear(), today.getMonth() + 4, 0),
+        );
 
-        if (error) {
-          setStatus(`Unable to load schedule: ${error.message}`);
-          return;
+        const [userResult, teamResult] = await Promise.all([
+          supabase
+            .from("attendance_days")
+            .select("office_date")
+            .eq("user_id", nextProfile.id)
+            .gte("office_date", startDate)
+            .lte("office_date", endDate)
+            .order("office_date", { ascending: true }),
+          supabase
+            .from("attendance_days")
+            .select("office_date")
+            .eq("company_id", nextProfile.company_id)
+            .gte("office_date", startDate)
+            .lte("office_date", endDate),
+        ]);
+
+        if (!userResult.error) {
+          setInitialDates(
+            (userResult.data ?? []).map((e) => e.office_date),
+          );
         }
 
-        setInitialDates((data ?? []).map((entry) => entry.office_date));
-        setStatus("Schedule loaded.");
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Unable to load schedule.";
-        setStatus(message);
+        if (!teamResult.error) {
+          const counts: Record<string, number> = {};
+          for (const row of teamResult.data ?? []) {
+            counts[row.office_date] = (counts[row.office_date] ?? 0) + 1;
+          }
+          setTeamCounts(counts);
+        }
+      } catch {
+        // auth or profile bootstrap failure — stay on loading state
       }
     }
 
@@ -60,8 +77,22 @@ export default function SchedulePage() {
   if (!profile) {
     return (
       <main className="min-h-screen bg-muted/30">
-        <div className="mx-auto w-full max-w-5xl px-4 py-10">
-          <p className="text-sm text-muted-foreground">{status}</p>
+        <div className="h-14 border-b bg-card/80" />
+        <div className="mx-auto w-full max-w-6xl px-4 py-6">
+          <div className="animate-pulse space-y-6">
+            <div>
+              <div className="h-7 w-40 rounded bg-muted" />
+              <div className="mt-2 h-4 w-72 rounded bg-muted" />
+            </div>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
+              <div className="h-[420px] rounded-xl bg-card ring-1 ring-foreground/5" />
+              <div className="space-y-4">
+                <div className="h-20 rounded-xl bg-card ring-1 ring-foreground/5" />
+                <div className="h-36 rounded-xl bg-card ring-1 ring-foreground/5" />
+                <div className="h-36 rounded-xl bg-card ring-1 ring-foreground/5" />
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     );
@@ -70,12 +101,17 @@ export default function SchedulePage() {
   return (
     <main className="min-h-screen bg-muted/30">
       <AppHeader activePath="/schedule" userLabel={profile.full_name} />
-      <div className="mx-auto w-full max-w-5xl px-4 py-6">
-        <h1 className="text-2xl font-semibold">My Schedule</h1>
+      <div className="mx-auto w-full max-w-6xl px-4 py-6">
+        <h1 className="text-2xl font-semibold tracking-tight">My Schedule</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Decide which days you are coming into the office. Updates appear on the company timeline in real time.
+          Click days on the calendar to plan when you&apos;re coming into the office.
         </p>
-        <ScheduleClient userId={profile.id} companyId={profile.company_id} initialDates={initialDates} />
+        <ScheduleClient
+          userId={profile.id}
+          companyId={profile.company_id}
+          initialDates={initialDates}
+          initialTeamCounts={teamCounts}
+        />
       </div>
     </main>
   );

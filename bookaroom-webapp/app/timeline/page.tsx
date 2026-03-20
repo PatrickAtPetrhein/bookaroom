@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/app/components/app-header";
 import { TimelineClient } from "@/app/timeline/timeline-client";
-import { addDays, type AttendanceRow, toIsoDate } from "@/lib/attendance";
+import { type AttendanceRow, toIsoDate } from "@/lib/attendance";
 import { getOrCreateProfile, type Profile } from "@/lib/auth-client";
 import { createClient } from "@/lib/supabase/client";
 
@@ -13,9 +13,12 @@ export default function TimelinePage() {
   const supabase = useMemo(() => createClient(), []);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [rows, setRows] = useState<AttendanceRow[]>([]);
-  const [status, setStatus] = useState("Loading company timeline...");
+
   const startDate = useMemo(() => toIsoDate(new Date()), []);
-  const endDate = useMemo(() => toIsoDate(addDays(new Date(), 29)), []);
+  const endDate = useMemo(() => {
+    const now = new Date();
+    return toIsoDate(new Date(now.getFullYear(), now.getMonth() + 4, 0));
+  }, []);
 
   useEffect(() => {
     async function loadTimeline() {
@@ -41,16 +44,10 @@ export default function TimelinePage() {
           .lte("office_date", endDate)
           .order("office_date", { ascending: true });
 
-        if (error) {
-          setStatus(`Unable to load timeline: ${error.message}`);
-          return;
-        }
-
+        if (error) return;
         setRows((data ?? []) as AttendanceRow[]);
-        setStatus("Timeline loaded.");
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Unable to load timeline.";
-        setStatus(message);
+      } catch {
+        // auth or profile bootstrap failure
       }
     }
 
@@ -60,8 +57,22 @@ export default function TimelinePage() {
   if (!profile) {
     return (
       <main className="min-h-screen bg-muted/30">
-        <div className="mx-auto w-full max-w-5xl px-4 py-10">
-          <p className="text-sm text-muted-foreground">{status}</p>
+        <div className="h-14 border-b bg-card/80" />
+        <div className="mx-auto w-full max-w-6xl px-4 py-6">
+          <div className="animate-pulse space-y-6">
+            <div>
+              <div className="h-7 w-48 rounded bg-muted" />
+              <div className="mt-2 h-4 w-80 rounded bg-muted" />
+            </div>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
+              <div className="h-[420px] rounded-xl bg-card ring-1 ring-foreground/5" />
+              <div className="space-y-4">
+                <div className="h-20 rounded-xl bg-card ring-1 ring-foreground/5" />
+                <div className="h-48 rounded-xl bg-card ring-1 ring-foreground/5" />
+                <div className="h-48 rounded-xl bg-card ring-1 ring-foreground/5" />
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     );
@@ -70,10 +81,12 @@ export default function TimelinePage() {
   return (
     <main className="min-h-screen bg-muted/30">
       <AppHeader activePath="/timeline" userLabel={profile.full_name} />
-      <div className="mx-auto w-full max-w-5xl px-4 py-6">
-        <h1 className="text-2xl font-semibold">Company Timeline</h1>
+      <div className="mx-auto w-full max-w-6xl px-4 py-6">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Company Timeline
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Everyone can see who is in the office each day over the next 30 days.
+          See who&apos;s in the office. Click any day on the calendar for details.
         </p>
         <TimelineClient
           companyId={profile.company_id}

@@ -22,11 +22,37 @@ export function addDays(base: Date, days: number) {
   return next;
 }
 
-export function formatHumanDate(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+export function formatHumanDate(iso: string) {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
     year: "numeric",
+  });
+}
+
+export function formatShortDate(iso: string) {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+export function getWeekStart(date: Date): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const dow = d.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+export function getWorkdaysForWeek(weekOffset: number): string[] {
+  const monday = getWeekStart(new Date());
+  monday.setDate(monday.getDate() + weekOffset * 7);
+  return Array.from({ length: 5 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return toIsoDate(d);
   });
 }

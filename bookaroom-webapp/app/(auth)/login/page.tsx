@@ -1,10 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Building2, CalendarDays, Users, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,9 +20,7 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [message, setMessage] = useState<string | null>(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
+    if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("message");
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,7 +38,10 @@ export default function LoginPage() {
 
     setIsSubmitting(true);
     setMessage(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     setIsSubmitting(false);
 
     if (error) {
@@ -47,7 +54,8 @@ export default function LoginPage() {
 
   async function signUpWithPassword(formData: FormData) {
     const fullNameEntry = formData.get("fullName");
-    const fullName = typeof fullNameEntry === "string" ? fullNameEntry.trim() : "";
+    const fullName =
+      typeof fullNameEntry === "string" ? fullNameEntry.trim() : "";
     const emailEntry = formData.get("email");
     const email = typeof emailEntry === "string" ? emailEntry.trim() : "";
     const passwordEntry = formData.get("password");
@@ -68,11 +76,7 @@ export default function LoginPage() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-      },
+      options: { data: { full_name: fullName } },
     });
     setIsSubmitting(false);
 
@@ -90,11 +94,23 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4">
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
+      <div className="mb-8 text-center">
+        <div className="mb-3 flex items-center justify-center gap-2.5">
+          <Building2 className="size-7 text-primary" />
+          <h1 className="text-2xl font-bold tracking-tight">Bookaroom</h1>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Plan your office days together with your team.
+        </p>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Office Attendance</CardTitle>
-          <CardDescription>Sign in or create an account with email and password.</CardDescription>
+          <CardTitle>Welcome</CardTitle>
+          <CardDescription>
+            Sign in or create an account to get started.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
@@ -132,7 +148,11 @@ export default function LoginPage() {
                     placeholder="Your password"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
                   {isSubmitting ? "Signing in..." : "Login"}
                 </Button>
               </form>
@@ -179,25 +199,55 @@ export default function LoginPage() {
                     placeholder="At least 8 characters"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
                   {isSubmitting ? "Creating account..." : "Create account"}
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
 
-          {message ? <p className="mt-4 text-sm text-muted-foreground">{message}</p> : null}
-
-          <p className="mt-6 text-xs text-muted-foreground">
-            After login, you will be redirected to your schedule.
-          </p>
+          {message ? (
+            <p className="mt-4 text-sm text-muted-foreground">{message}</p>
+          ) : null}
         </CardContent>
       </Card>
-      <p className="mt-3 text-center text-xs text-muted-foreground">
-        <Link href="/" className="underline">
-          Back to app
-        </Link>
-      </p>
+
+      <div className="mt-10 grid grid-cols-3 gap-6 text-center">
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-muted">
+            <CalendarDays className="size-4 text-muted-foreground" />
+          </div>
+          <p className="text-xs text-muted-foreground leading-tight">
+            Interactive
+            <br />
+            calendar
+          </p>
+        </div>
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-muted">
+            <Users className="size-4 text-muted-foreground" />
+          </div>
+          <p className="text-xs text-muted-foreground leading-tight">
+            Team
+            <br />
+            visibility
+          </p>
+        </div>
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-muted">
+            <Zap className="size-4 text-muted-foreground" />
+          </div>
+          <p className="text-xs text-muted-foreground leading-tight">
+            Real-time
+            <br />
+            updates
+          </p>
+        </div>
+      </div>
     </main>
   );
 }

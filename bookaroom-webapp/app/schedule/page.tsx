@@ -14,6 +14,7 @@ export default function SchedulePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [initialDates, setInitialDates] = useState<string[]>([]);
   const [teamCounts, setTeamCounts] = useState<Record<string, number>>({});
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     async function loadSchedule() {
@@ -29,7 +30,6 @@ export default function SchedulePage() {
 
       try {
         const nextProfile = await getOrCreateProfile(user);
-        setProfile(nextProfile);
 
         const today = new Date();
         const startDate = toIsoDate(today);
@@ -53,19 +53,21 @@ export default function SchedulePage() {
             .lte("office_date", endDate),
         ]);
 
-        if (!userResult.error) {
-          setInitialDates(
-            (userResult.data ?? []).map((e) => e.office_date),
-          );
-        }
+        const dates = !userResult.error
+          ? (userResult.data ?? []).map((e) => e.office_date)
+          : [];
 
+        const counts: Record<string, number> = {};
         if (!teamResult.error) {
-          const counts: Record<string, number> = {};
           for (const row of teamResult.data ?? []) {
             counts[row.office_date] = (counts[row.office_date] ?? 0) + 1;
           }
-          setTeamCounts(counts);
         }
+
+        setInitialDates(dates);
+        setTeamCounts(counts);
+        setProfile(nextProfile);
+        setReady(true);
       } catch {
         // auth or profile bootstrap failure — stay on loading state
       }
@@ -74,7 +76,7 @@ export default function SchedulePage() {
     void loadSchedule();
   }, [router, supabase]);
 
-  if (!profile) {
+  if (!profile || !ready) {
     return (
       <main className="min-h-screen bg-muted/30">
         <div className="h-14 border-b bg-card/80" />

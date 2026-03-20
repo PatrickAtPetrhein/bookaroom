@@ -13,6 +13,7 @@ export default function TimelinePage() {
   const supabase = useMemo(() => createClient(), []);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [rows, setRows] = useState<AttendanceRow[]>([]);
+  const [ready, setReady] = useState(false);
 
   const startDate = useMemo(() => toIsoDate(new Date()), []);
   const endDate = useMemo(() => {
@@ -34,7 +35,6 @@ export default function TimelinePage() {
 
       try {
         const nextProfile = await getOrCreateProfile(user);
-        setProfile(nextProfile);
 
         const { data, error } = await supabase
           .from("attendance_days")
@@ -44,8 +44,11 @@ export default function TimelinePage() {
           .lte("office_date", endDate)
           .order("office_date", { ascending: true });
 
-        if (error) return;
-        setRows((data ?? []) as AttendanceRow[]);
+        if (!error) {
+          setRows((data ?? []) as AttendanceRow[]);
+        }
+        setProfile(nextProfile);
+        setReady(true);
       } catch {
         // auth or profile bootstrap failure
       }
@@ -54,7 +57,7 @@ export default function TimelinePage() {
     void loadTimeline();
   }, [endDate, router, startDate, supabase]);
 
-  if (!profile) {
+  if (!profile || !ready) {
     return (
       <main className="min-h-screen bg-muted/30">
         <div className="h-14 border-b bg-card/80" />

@@ -1,13 +1,21 @@
+export type ProfileEmbed = {
+  full_name: string;
+  email: string;
+};
+
 export type AttendanceRow = {
   id: string;
   office_date: string;
   status: "in_office";
   user_id: string;
-  profiles: Array<{
-    full_name: string;
-    email: string;
-  }> | null;
+  profiles: ProfileEmbed | ProfileEmbed[] | null;
 };
+
+export function resolveProfile(row: AttendanceRow): ProfileEmbed | null {
+  if (!row.profiles) return null;
+  if (Array.isArray(row.profiles)) return row.profiles[0] ?? null;
+  return row.profiles;
+}
 
 export function toIsoDate(date: Date) {
   const year = date.getFullYear();

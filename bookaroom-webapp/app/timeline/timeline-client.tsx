@@ -8,6 +8,7 @@ import { Calendar } from "@/app/components/calendar";
 import { cn } from "@/lib/utils";
 import {
   type AttendanceRow,
+  resolveProfile,
   formatHumanDate,
   formatShortDate,
   getWorkdaysForWeek,
@@ -40,10 +41,8 @@ function buildTeamCounts(rows: AttendanceRow[]): Map<string, number> {
 }
 
 function getPersonName(entry: AttendanceRow): string {
-  if (entry.profiles && entry.profiles.length > 0) {
-    return entry.profiles[0].full_name || entry.profiles[0].email;
-  }
-  return "Unknown";
+  const p = resolveProfile(entry);
+  return p?.full_name || p?.email || "Unknown";
 }
 
 function getInitials(name: string): string {

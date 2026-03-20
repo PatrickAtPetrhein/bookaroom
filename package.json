@@ -2,6 +2,7 @@
   "name": "bookaroom",
   "private": true,
   "scripts": {
+    "save": "bash scripts/git-save.sh",
     "dev": "cd bookaroom-webapp && npm run dev",
     "build": "cd bookaroom-webapp && npm run build",
     "start": "cd bookaroom-webapp && npm run start",

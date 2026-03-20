@@ -1,0 +1,10 @@
+{
+  "name": "bookaroom",
+  "private": true,
+  "scripts": {
+    "dev": "cd bookaroom-webapp && npm run dev",
+    "build": "cd bookaroom-webapp && npm run build",
+    "start": "cd bookaroom-webapp && npm run start",
+    "lint": "cd bookaroom-webapp && npm run lint"
+  }
+}

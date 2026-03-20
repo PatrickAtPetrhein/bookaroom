@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, CalendarDays, Users, Zap } from "lucide-react";
+import { Building2, CalendarDays, CircleAlert, Users, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClient } from "@/lib/supabase/client";
 
+const inputClassName = "h-10 text-base";
+
 export default function LoginPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -23,9 +25,14 @@ export default function LoginPage() {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("message");
   });
+  const [isError, setIsError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function signInWithPassword(formData: FormData) {
+  async function handleSignIn(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
     const emailEntry = formData.get("email");
     const email = typeof emailEntry === "string" ? emailEntry.trim() : "";
     const passwordEntry = formData.get("password");
@@ -33,11 +40,13 @@ export default function LoginPage() {
 
     if (!email || !password) {
       setMessage("Please provide email and password.");
+      setIsError(true);
       return;
     }
 
     setIsSubmitting(true);
     setMessage(null);
+    setIsError(false);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -46,13 +55,18 @@ export default function LoginPage() {
 
     if (error) {
       setMessage(error.message);
+      setIsError(true);
       return;
     }
 
     router.push("/schedule");
   }
 
-  async function signUpWithPassword(formData: FormData) {
+  async function handleSignUp(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
     const fullNameEntry = formData.get("fullName");
     const fullName =
       typeof fullNameEntry === "string" ? fullNameEntry.trim() : "";
@@ -63,16 +77,19 @@ export default function LoginPage() {
 
     if (!fullName || !email || !password) {
       setMessage("Please provide full name, email, and password.");
+      setIsError(true);
       return;
     }
 
     if (password.length < 8) {
       setMessage("Password must be at least 8 characters.");
+      setIsError(true);
       return;
     }
 
     setIsSubmitting(true);
     setMessage(null);
+    setIsError(false);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -82,6 +99,7 @@ export default function LoginPage() {
 
     if (error) {
       setMessage(error.message);
+      setIsError(true);
       return;
     }
 
@@ -91,10 +109,11 @@ export default function LoginPage() {
     }
 
     setMessage("Account created. You can now sign in.");
+    setIsError(false);
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
+    <main className="mx-auto flex min-h-screen w-full max-w-[26rem] flex-col justify-center px-4 py-12">
       <div className="mb-8 text-center">
         <div className="mb-3 flex items-center justify-center gap-2.5">
           <Building2 className="size-7 text-primary" />
@@ -107,25 +126,20 @@ export default function LoginPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Welcome</CardTitle>
+          <CardTitle className="text-lg">Welcome</CardTitle>
           <CardDescription>
             Sign in or create an account to get started.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="mb-4 grid w-full grid-cols-2">
+            <TabsList className="mb-5 grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Create account</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
-              <form
-                action={(formData) => {
-                  void signInWithPassword(formData);
-                }}
-                className="space-y-3"
-              >
+              <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="login-email">Work email</Label>
                   <Input
@@ -135,6 +149,7 @@ export default function LoginPage() {
                     required
                     autoComplete="email"
                     placeholder="you@company.com"
+                    className={inputClassName}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -146,10 +161,12 @@ export default function LoginPage() {
                     required
                     autoComplete="current-password"
                     placeholder="Your password"
+                    className={inputClassName}
                   />
                 </div>
                 <Button
                   type="submit"
+                  size="lg"
                   className="w-full"
                   disabled={isSubmitting}
                 >
@@ -159,12 +176,7 @@ export default function LoginPage() {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form
-                action={(formData) => {
-                  void signUpWithPassword(formData);
-                }}
-                className="space-y-3"
-              >
+              <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="signup-name">Full name</Label>
                   <Input
@@ -174,6 +186,7 @@ export default function LoginPage() {
                     required
                     autoComplete="name"
                     placeholder="Jane Doe"
+                    className={inputClassName}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -185,6 +198,7 @@ export default function LoginPage() {
                     required
                     autoComplete="email"
                     placeholder="you@company.com"
+                    className={inputClassName}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -197,10 +211,12 @@ export default function LoginPage() {
                     minLength={8}
                     autoComplete="new-password"
                     placeholder="At least 8 characters"
+                    className={inputClassName}
                   />
                 </div>
                 <Button
                   type="submit"
+                  size="lg"
                   className="w-full"
                   disabled={isSubmitting}
                 >
@@ -210,9 +226,18 @@ export default function LoginPage() {
             </TabsContent>
           </Tabs>
 
-          {message ? (
-            <p className="mt-4 text-sm text-muted-foreground">{message}</p>
-          ) : null}
+          {message && (
+            <div
+              className={
+                isError
+                  ? "mt-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive"
+                  : "mt-4 flex items-start gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+              }
+            >
+              {isError && <CircleAlert className="mt-0.5 size-4 shrink-0" />}
+              <span>{message}</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
